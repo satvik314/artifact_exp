@@ -1,113 +1,158 @@
-import Image from "next/image";
+"use client";
+import React, { useState, useEffect } from 'react';
+import { ArrowUp, ArrowRight } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
-export default function Home() {
+const ProjectileMotion = () => {
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [time, setTime] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [angle, setAngle] = useState(45);
+  const [velocity, setVelocity] = useState(50);
+  const [trajectory, setTrajectory] = useState<{ x: number, y: number, t: number }[]>([]);
+
+  // Constants
+  const g = 9.8; // Acceleration due to gravity (m/s^2)
+
+  // Convert angle to radians
+  const angleRad = angle * Math.PI / 180;
+
+  // Initial velocity components
+  const v0x = velocity * Math.cos(angleRad);
+  const v0y = velocity * Math.sin(angleRad);
+
+  useEffect(() => {
+    let animationFrame: number;
+
+    const animate = () => {
+      if (isAnimating) {
+        setTime((prevTime) => {
+          const newTime = prevTime + 0.05;
+          const x = v0x * newTime;
+          const y = v0y * newTime - 0.5 * g * newTime * newTime;
+
+          setPosition({ x, y });
+          // setTrajectory((prev: any) => [...prev, { x, y, t: newTime }]);
+          setTrajectory((prev) => [...prev, { x, y, t: newTime }]);
+
+          if (y < 0) {
+            setIsAnimating(false);
+            return prevTime;
+          }
+
+          return newTime;
+        });
+
+        animationFrame = requestAnimationFrame(animate);
+      }
+    };
+
+    animate();
+
+    return () => cancelAnimationFrame(animationFrame);
+  }, [isAnimating, v0x, v0y]);
+
+  const handleStart = () => {
+    setTime(0);
+    setPosition({ x: 0, y: 0 });
+    setTrajectory([]);
+    setIsAnimating(true);
+  };
+
+  const scale = 3; // Scale factor for visualization
+
+  const maxHeight = (v0y * v0y) / (2 * g);
+  const totalRange = (v0x * 2 * v0y) / g;
+  const flightTime = (2 * v0y) / g;
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <div className="w-full p-4 bg-gray-100">
+      <div className="mb-4">
+        <label className="mr-2">Angle (degrees): </label>
+        <input 
+          type="range" 
+          min="0" 
+          max="90" 
+          value={angle} 
+          onChange={(e) => setAngle(Number(e.target.value))}
+          className="mr-2"
+        />
+        <span>{angle}°</span>
+      </div>
+      <div className="mb-4">
+        <label className="mr-2">Initial Velocity (m/s): </label>
+        <input 
+          type="range" 
+          min="10" 
+          max="100" 
+          value={velocity} 
+          onChange={(e) => setVelocity(Number(e.target.value))}
+          className="mr-2"
+        />
+        <span>{velocity} m/s</span>
+      </div>
+      <div className="relative w-full h-96 bg-blue-100 mb-4 overflow-hidden">
+        <div 
+          className="absolute w-4 h-4 bg-red-500 rounded-full"
+          style={{ 
+            bottom: `${position.y * scale}px`, 
+            left: `${position.x * scale}px` 
+          }}
+        />
+        {trajectory.map((point, index) => (
+          <div 
+            key={index}
+            className="absolute w-1 h-1 bg-gray-500 rounded-full"
+            style={{ 
+              bottom: `${point.y * scale}px`, 
+              left: `${point.x * scale}px` 
+            }}
+          />
+        ))}
+        <div className="absolute bottom-0 left-0">
+          <ArrowUp className="text-green-500" size={24} />
+          <ArrowRight className="text-blue-500" size={24} />
         </div>
       </div>
-
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
+      <button 
+        className="px-4 py-2 bg-blue-500 text-white rounded mb-4"
+        onClick={handleStart}
+      >
+        Launch
+      </button>
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="bg-white p-4 rounded shadow">
+          <h3 className="font-bold">Max Height</h3>
+          <p>{maxHeight.toFixed(2)} m</p>
+        </div>
+        <div className="bg-white p-4 rounded shadow">
+          <h3 className="font-bold">Total Range</h3>
+          <p>{totalRange.toFixed(2)} m</p>
+        </div>
+        <div className="bg-white p-4 rounded shadow">
+          <h3 className="font-bold">Flight Time</h3>
+          <p>{flightTime.toFixed(2)} s</p>
+        </div>
       </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+      <LineChart width={600} height={300} data={trajectory}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="x" label={{ value: 'Distance (m)', position: 'bottom' }} />
+        <YAxis label={{ value: 'Height (m)', angle: -90, position: 'left' }} />
+        <Tooltip />
+        <Legend />
+        <Line type="monotone" dataKey="y" stroke="#8884d8" name="Height" />
+      </LineChart>
+    </div>
   );
-}
+};
+
+const Home = () => {
+  return (
+    <div>
+      <h1>Welcome to the Projectile Motion Simulator</h1>
+      <ProjectileMotion />
+    </div>
+  );
+};
+
+export default Home;
